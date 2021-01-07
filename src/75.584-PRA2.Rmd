@@ -1,0 +1,322 @@
+---
+title: 'Minería de datos: PRA2 - Modelado de un juego de datos'
+author: "Autor: Reynel López Lantigua"
+date: "Diciembre 2020"
+output:
+  html_document:
+    highlight: default
+    number_sections: yes
+    theme: cosmo
+    toc: yes
+    toc_depth: 2
+    includes:
+      in_header: 75.584-PEC-header.html
+  word_document: default
+  pdf_document:
+    highlight: zenburn
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+******
+# Introducción
+******
+## Presentación
+Esta práctica cubre de forma transversal la asignatura.
+
+Las Prácticas 1 y 2 de la asignatura se plantean de una forma conjunta de modo que la Práctica 2 será continuación de la 1.
+
+El objetivo global de las dos prácticas consiste en seleccionar uno o varios juegos de datos, realizar las tareas de preparación y análisis exploratorio con el objetivo de disponer de datos listos para aplicar algoritmos de clustering, asociación y clasificación.
+
+## Competencias
+Las competencias que se trabajan en esta prueba son:  
+
+* Uso y aplicación de las TIC en el ámbito académico y profesional.
+* Capacidad para innovar y generar nuevas ideas.
+* Capacidad para evaluar soluciones tecnológicas y elaborar propuestas de proyectos teniendo en cuenta los recursos, las alternativas disponibles y las condiciones de mercado.
+* Conocer las tecnologías de comunicaciones actuales y emergentes así como saberlas aplicar convenientemente para diseñar y desarrollar soluciones basadas en sistemas y tecnologías de la información.
+* Aplicación de las técnicas específicas de ingeniería del software en las diferentes etapas del ciclo de vida de un proyecto.
+* Capacidad para aplicar las técnicas específicas de tratamiento, almacenamiento y administración de datos.
+* Capacidad para proponer y evaluar diferentes alternativas tecnológicas para resolver un problema concreto.
+
+## Objetivos
+La correcta asimilación de todos los aspectos trabajados durante el semestre.  
+En esta práctica abordamos un caso real de minería de datos donde tenemos que poner en juego todos los conceptos trabajados.
+Hay que trabajar todo el ciclo de vida del proyecto. Desde el objetivo del proyecto hasta la implementación del conocimiento encontrado pasando por la preparación, limpieza de los datos, conocimiento de los datos, generación del modelo, interpretación y evaluación.
+
+## Descripción de la PEC a realizar
+
+## Recursos Básicos
+Material docente proporcionado por la UOC. 
+
+## Criterios de valoración
+
+**Ejercicios prácticos** 
+
+Para todas las PEC es necesario documentar en cada apartado del ejercicio práctico que se ha hecho y como se ha hecho.
+
+## Formato y fecha de entrega
+El formato de entrega es: usernameestudiante-PECn.html/doc/docx/odt/pdf/rmd  
+Fecha de entrega: 15/01/2020  
+Se debe entregar la PEC en el buzón de entregas del aula  
+
+## Nota: Propiedad intelectual 
+
+> A menudo es inevitable, al producir una obra multimedia, hacer uso de recursos creados por terceras personas. Es por lo tanto comprensible hacerlo en el marco de una práctica de los estudios de Informática, Multimedia y Telecomunicación de la UOC, siempre y cuando esto se documente claramente y no suponga plagio en la práctica. 
+
+> Por lo tanto, al presentar una práctica que haga uso de recursos ajenos, se debe presentar junto con ella un documento en que se detallen todos ellos, especificando el nombre de cada recurso, su autor, el lugar donde se obtuvo y su estatus legal: si la obra esta protegida por el copyright o se acoge a alguna otra licencia de uso (Creative Commons, licencia GNU, GPL ...). 
+El estudiante deberá asegurarse de que la licencia no impide específicamente su uso en el marco de la práctica. En caso de no encontrar la información correspondiente tendrá que asumir que la obra esta protegida por copyright. 
+
+> Deberéis, además, adjuntar los ficheros originales cuando las obras utilizadas sean digitales, y su código fuente si corresponde.  
+
+******
+# Enunciado
+******
+Como continuación del estudio iniciado en la práctica 1, procedemos en esta práctica 2 a aplicar modelos analíticos sobe el juego de datos seleccionado y preparado en la práctica anterior.
+
+De este modo se pide al estudiante que complete los siguientes pasos: 
+
+1. Tratar la práctica como un proyecto real de minería de datos, con todos los puntos de su **ciclo de vida**.
+
+2. Aplicar un modelo de generación de reglas a partir de **árboles de decisión**.  
+
+3. Aplicar un modelo **no supervisado** y basado en el concepto de **distancia**, sobre el juego de datos.   
+
+4. Aplica de nuevo el modelo anterior, pero usando una **métrica distinta** y compara los resultados.
+
+5. Aplicar un **modelo supervisado** sobre el juego de datos **sin** haber aplicado previamente **PCA/SVD**.
+
+6. Aplicar un **modelo supervisado** sobre el juego de datos habiendo aplicado previamente **PCA/SVD**.
+
+7. ¿Ha habido mejora en capacidad predictiva, tras aplicar PCA/SVD? ¿A qué crees que es debido?.   
+
+
+******
+# Rúbrica
+******
+* 10%. Trata todos los puntos de la práctica como un proyecto real de minería de datos, siguiendo todos los puntos del ciclo de vida, desde la descripción funcional hasta la integración de los resultados, comentando los puntos en los que sería necesario volver atrás cuando sea necesario.
+* 15%. Se generan reglas y se comentan e interpretan las más significativas. Adicionalmente se genera matriz de confusión para medir la capacidad predictiva del algoritmo.  
+* 15%. Se genera modelo no supervisado, se muestran y comentan medidas de calidad del modelo generado y se comentan las conclusiones.  
+* 15%. Se genera modelo no supervisado con métrica de distancia distinta al anterior. Se muestran y comentan medidas de calidad del modelo generado y se comentan las conclusiones. Adicionalmente se comparan los dos modelos no supervisados con métricas de distancia distinta.  
+* 15%. Se genera un modelo supervisado sin PCA/SVD previo, se muestran y comentan medidas de calidad del modelo generado y se comenta extensamente el conocimiento extraído del modelo.  
+* 15%. Se genera un modelo supervisado con PCA/SVD previo, se muestran y comentan medidas de calidad del modelo generado y se comenta extensamente el conocimiento extraído del modelo.    
+* 15%. Se compara la capacidad predictiva de los dos modelos supervisados y se comenta la diferencia de rendimiento en base al efecto PCA/SVD.  
+
+
+******
+# Recursos de programación
+******
+* Incluimos en este apartado una lista de recursos de programación para minería de datos donde podréis encontrar ejemplos, ideas e inspiración:
+  + [Material adicional del libro: Minería de datos Modelos y Algoritmos](http://oer.uoc.edu/libroMD/)
+  + [Espacio de recursos UOC para ciencia de datos](http://datascience.recursos.uoc.edu/es/)
+  + [Buscador de código R](https://rseek.org/)  
+  + [Colección de cheatsheets en R](https://rstudio.com/resources/cheatsheets/)  
+  
+
+******
+# Solución
+******
+
+## Introducción
+
+## Carga de los datos
+
+```{r message=FALSE,warning=FALSE}
+# Loading the data file.
+diabetes <- read.csv("../data/diabetes.csv", header = TRUE, row.names = 'X')
+str(diabetes)
+head(diabetes)
+
+diabetes$Outcome <- as.factor(diabetes$Outcome)
+diabetes_svd <- read.csv("../data/diabetes.svd.csv", header=TRUE, row.names = 'X')
+head(diabetes_svd)
+
+
+diabetes_svd$Outcome <- as.factor(diabetes$Outcome)
+head(diabetes_svd)
+
+str(diabetes)
+```
+## Preparación de los datos
+
+### Partición del Dataset original
+```{r message=FALSE, warning=FALSE}
+library(caret)
+
+
+# Make the data replicable 
+set.seed(2021)
+
+# Create the inedx list
+diab_indexes <- createDataPartition(diabetes$Outcome, p = .7, list = FALSE)
+
+
+# Get the train segment
+diab_train <- diabetes[diab_indexes,]
+
+# Get the test segment 
+diab_test <- diabetes[-diab_indexes, ]
+```
+
+```{r message=FALSE, warning=FALSE}
+
+# Split the target and predictors variables
+diab_train.x <- diab_train[1:8]
+diab_train.y <- diab_train[ , 9 ]
+
+diab_test.x <- diab_test[1:8]
+diab_test.y <- diab_test[, 9]
+
+
+```
+
+### Análisis estadístico 
+
+
+
+### Dataset modificado
+
+
+## Obtención de reglas de asociación mediante Árboles de decisión
+
+### Creación del modelo
+
+```{r message=FALSE, warning=FALSE}
+
+# Built the model
+model <- C50::C5.0(diab_train.x, diab_train.y,rules=TRUE )
+summary(model)
+
+```
+### validadción y calidad del modelo
+
+
+```{r message=FALSE, warning=FALSE}
+
+# Test the model with unknown data
+predicted_model <- predict( model, diab_test.x, type="class" )
+
+library(gmodels)
+
+CrossTable(diab_test.y, predicted_model,prop.chisq  = FALSE, prop.c = FALSE, prop.r =FALSE,dnn = c('Reality', 'Prediction'))
+
+print(sprintf("La precisión del árbol es: %.4f %%",100*sum(predicted_model == diab_test.y) / length(predicted_model)))
+```
+
+
+### Reglas de asociación 
+
+### Visualización del modelo
+
+```{r message=FALSE, warning=FALSE}
+
+# Built the model
+model <- C50::C5.0(diab_train.x, diab_train.y)
+
+```
+
+```{r, fig.width=15, fig.height=7}  
+plot(model)
+```
+
+## Modelos "No supervizados" basado en distancias.
+
+### Creación modelo K-means k = 2
+
+```{r message=FALSE, warning=FALSE}
+library(cluster)
+
+diab_predictors <- diabetes[1:8]
+diab_target <- diabetes$Outcome
+
+```
+
+
+
+
+```{r message=FALSE, warning=FALSE}
+
+k = 2
+k_menas_cluster <- kmeans(diab_predictors, k)
+
+```
+
+
+### Calidad del modelo 
+
+```{r message=FALSE, warning=FALSE}
+
+cm <- table(k_menas_cluster$cluster, diab_target)
+cm
+k_means_ave <- (cm[1,2] + cm[2,1]) / (cm[1,1] + cm[2,2] +cm[1,2] + cm[2,1]) * 100
+print(sprintf("La precisión del modelo es: %.2f %%",k_means_ave))
+
+```
+
+
+
+
+## Modelos "No supervizados" basados en modelos.
+
+
+### Visión general del modelo y del pquete `Mclust`
+
+```{r message=FALSE, warning=FALSE}
+library(factoextra)
+library(mclust)
+
+model_based_clust <- Mclust(diab_predictors)
+model_based_clust
+
+```
+
+
+```{r message=FALSE, warning=FALSE}
+fviz_mclust(model_based_clust, what = 'BIC')
+```
+
+### Creación del modelo con k = 2
+```{r message=FALSE, warning=FALSE}
+# Fit the model with customized parameters
+model_based_clust <- Mclust(diab_predictors, G=2)
+model_based_clust
+```
+
+
+```{r message=FALSE, warning=FALSE}
+
+# Plot the classification modelo
+fviz_cluster(model_based_clust,diab_predictors)
+fviz_mclust(model_based_clust, what = 'classification')
+
+```
+
+### Calidad del modelo
+```{r message=FALSE, warning=FALSE}
+
+# Comparing the predicted results with originals ones.
+cm <- table(model_based_clust$classification,diab_target)
+cm
+
+# Get the precision of the model
+model_based_ave <-  (cm[1,2] + cm[2,1]) / (cm[1,1] + cm[2,2] +cm[1,2] + cm[2,1]) * 100
+print(sprintf("La precisión del modelo es: %.2f %%",model_based_ave))
+
+```
+
+
+
+
+## Modelo supervizado sobre los datos originales.
+
+## Modelo supervizado sobre datos reducidos.
+
+## Análisis de los resultados
+
+## Conclusiones
+
+
+
+
