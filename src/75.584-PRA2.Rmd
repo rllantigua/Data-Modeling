@@ -13,8 +13,9 @@ output:
       in_header: 75.584-PEC-header.html
   word_document: default
   pdf_document:
-    highlight: zenburn
+    highlight: default
     toc: yes
+always_allow_html: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -118,10 +119,9 @@ De este modo se pide al estudiante que complete los siguientes pasos:
 ******
 # Solución
 ******
-
-## Introducción
-
 ## Carga de los datos
+
+Para comenzar con esta práctica es necesario realizar la carga de los datos. Los dos archivos con los que se trabaja son los resultantes de la ejecución de las tareas de pre-procesamiento y limpieza realizadas en la práctica 1, con lo cual estos archivos están almacenados previamente en el directorio data. De manera análoga a los procedimientos realizados durante todo el curso, se realiza un pequeño análisis para observar los datos. En este punto no se realizará un análisis muy detallado porque estos datos ya son conocidos de la práctica pasada.
 
 ```{r message=FALSE,warning=FALSE}
 # Loading the data file.
@@ -140,8 +140,15 @@ head(diabetes_svd)
 str(diabetes)
 ```
 ## Preparación de los datos
+ 
+ En este apartado se realizan las tareas necesarias para preparar tanto los datos originales como los obtenidos después de aplicar SVD, estas tareas ofrecen como resultados particiones en los datos para que luego sean consumidas por los diferentes algoritmos. Se intentará que estas particiones presenten la mejor calidad posibles utilizando las particiones estratificadas y posteriormente comprobando la calidad de las mismas.
 
 ### Partición del Dataset original
+
+En este apartado se realizan algunas tareas de transformación a los datos con el objetivo de prepararlos para alimentar los diferentes algoritmos que se probarán durante la práctica. Principalmente los algoritmos de clasificación que necesitan que los datos estén divididos en _training_ y _testing_ para su correcta evaluación. Otros de los objetivos de esta partición es permitir probar los modelos implementados con datos desconocidos para el algoritmo, de esta manera se evitan entre otras cosas el _overfitting_ y se obtiene un valor mucho más realista de la capacidad clasificadora del modelo.
+ 
+Para realizar las particiones se utiliza el mismo método que en la práctica 1, la función createDataPartition() que crea particiones estratificadas de los datos teniendo como valor de referencia la clase objetivo.  
+ 
 ```{r message=FALSE, warning=FALSE}
 library(caret)
 
@@ -160,6 +167,10 @@ diab_train <- diabetes[diab_indexes,]
 diab_test <- diabetes[-diab_indexes, ]
 ```
 
+
+También se separan las variables predictoras de las objetivos, esto mayormente se utiliza para obtener las métricas de rendimiento de los modelos, al comparar las salidas del modelo con las clases de la variable objetivo. 
+
+
 ```{r message=FALSE, warning=FALSE}
 
 # Split the target and predictors variables
@@ -169,19 +180,98 @@ diab_train.y <- diab_train[ , 9 ]
 diab_test.x <- diab_test[1:8]
 diab_test.y <- diab_test[, 9]
 
+diab_predictors <- diabetes[ ,-9]
+diab_target <- diabetes$Outcome
+```
+
+### Análisis estadístico de los datos divididos.
+
+Para asegurar que los datos han sido divididos adecuadamente se comprueban las distribuciones de la variable _target_. El objetivo de esta comprobación es demostrar que en ambos conjuntos de datos las distribuciones de ambas clases son similares, y no perjudicarán la creación del modelo sesgando los resultados por la presencia superior de una clase sobre la otra. 
+
+```{r message=FALSE, warning=FALSE}
+
+# Get the distribution of each variable in each splited set
+
+# Training set
+train.prop <- table(diab_train.y)
+train.prop
+print(sprintf("La proporción de clases en el conjunto de entrenamiento es: %.4f", train.prop[2]/train.prop[1]))
+
+# Test set
+test.prop <- table(diab_test.y)
+test.prop
+print(sprintf("La proporción de clases en el conjunto de prueba es: %.4f", test.prop[2]/test.prop[1]))
+
 
 ```
 
-### Análisis estadístico 
-
+Como demuestra el estudio anterior ambos conjuntos presentan una distribución parecida de las clases de la variable objetivo, lo que demuestra que los datos han sido divididos de manera correcta.
 
 
 ### Dataset modificado
 
+En el caso de los datos obtenidos después de aplicar el algoritmo SVD, se seguirá el mismo procedimiento que para los datos originales. Se realizarán las correspondientes particiones estratificadas para luego separar las variables predictoras de la objetivo. 
+
+```{r message=FALSE, warning=FALSE}
+library(caret)
+
+
+# Make the data replicable 
+set.seed(2021)
+
+# Create the inedx list
+svd_indexes <- createDataPartition(diabetes_svd$Outcome, p = .7, list = FALSE)
+
+
+# Get the train segment
+svd_train <- diabetes_svd[svd_indexes,]
+
+# Get the test segment 
+svd_test <- diabetes_svd[-svd_indexes, ]
+
+# Split the target and predictors variables
+svd_train.x <- svd_train[1:8]
+svd_train.y <- svd_train[ , 9 ]
+
+svd_test.x <- svd_test[1:8]
+svd_test.y <- svd_test[, 9]
+
+
+```
+
+### Análisis estadístico de los datos divididos.
+
+Para los datos modificados también se comprueba los resutlados del proceso de partición. 
+
+```{r message=FALSE, warning=FALSE}
+
+# Get the distribution of each variable in each splited set
+
+# Training set
+train.prop <- table(svd_train.y)
+train.prop
+print(sprintf("La proporción de clases en el conjunto de entrenamiento es: %.4f", train.prop[2]/train.prop[1]))
+
+# Test set
+test.prop <- table(svd_test.y)
+test.prop
+print(sprintf("La proporción de clases en el conjunto de prueba es: %.4f", test.prop[2]/test.prop[1]))
+
+
+```
+
+Como demuestra el estudio anterior ambos conjuntos presentan una distribución parecida de las clases de la variable objetivo, lo que demuestra que los datos han sido divididos de manera correcta.
+
 
 ## Obtención de reglas de asociación mediante Árboles de decisión
 
-### Creación del modelo
+Como su nombre lo indica en este apartado se aplicarán las técnicas necesarias para obtener un conjuntos de reglas de asociación a partir de un algoritmo basado en los árboles de decisión. Se utilizará el conocido algoritmo C5.0 con el parámetro "_rules_ = TRUE para que devuelva una lista con dichas reglas.
+
+### Creación del modelo y obtención de las Reglas de asociación 
+
+Para crear el modelo se utilizan los datos originales divididos adecuadamente para este algoritmo, una vez creado el modelo se ofrece un resumen de los resultados que aporta el mismo.
+
+En este resumen se ofrecen datos muy interesantes del modelo. Ofrece un resumen de la cantidad de observaciones (_cases_) que utilizó para la construcción de árbol además de la cantidad de variables (_attributes_). Indica cuál fue la clase usada como _target_ y ofrece un listado con las **reglas de asociación** obtenida por el modelo, para cada regla se muestra el valor del _lift_ y las diferentes condiciones que las componen. Este resumen también contiene un análisis del rendimiento del modelo comparando los casos de entrenamiento con los que se construyó el modelo. Al final del resumen se muestra el porcentaje de los atributos utilizados en el proceso de construcción del árbol.
 
 ```{r message=FALSE, warning=FALSE}
 
@@ -190,132 +280,394 @@ model <- C50::C5.0(diab_train.x, diab_train.y,rules=TRUE )
 summary(model)
 
 ```
-### validadción y calidad del modelo
 
+Las reglas más importantes generadas por el modelo son:
+
+1. Si: 
+  * Glucose <= 0.8202951
+	* BMI <= -0.8880368
+	* **class** -> 0  con una validez del 97%
+
+2. Si:
+	* Glucose <= 0.8202951
+	* BMI <= -0.2782437
+	* DiabetesPedigreeFunction <= -0.7230644
+	* **class** -> 0 con una validez del 96.2%
+
+3. Si:
+	* Glucose > -0.6874452
+	* Glucose <= 0.8202951
+	* BMI > 0.3784566
+	* DiabetesPedigreeFunction <= -0.7230644
+	* **class** -> 0 con una validez del 95.5%
+
+4. Si:
+	* Glucose <= 0.8202951
+	* DiabetesPedigreeFunction <= 0.3149524
+	* Age <= -0.4355256
+	* **class** -> 0 con una validez del 94.5
+	
+Como es de suponer la mayoría de las reglas se basan en los niveles de glucosa, parámetros claramente decisivo a la hora de evaluar un enfermedad como la diabetes. En las demás reglas seleccionadas para ser mostradas se aprecia como hay otros factores importantes como el índice de masa corporal o la edad. Estos resultados corroboran en gran medida los resultados obtenidos en el análisis exploratorio de los datos realizados en la práctica 1.
+
+
+### Validación y calidad del modelo
+
+Una vez conocidos los principales parámetros y reglas que componen el árbol se procede a evaluar su rendimiento en los datos de prueba, ests datos hasta ahora no eran conocidos por el modelo, lo que ofrecerá una medida mucho más realista de la capacidad clasificadora del mismo. utilizando la función CrossTable() del paquete _gmodels_ se crea una matriz de confusión y se ofrece una medida del rendimiento del modelo (_accuracy_).
 
 ```{r message=FALSE, warning=FALSE}
+library(gmodels)
 
 # Test the model with unknown data
 predicted_model <- predict( model, diab_test.x, type="class" )
 
-library(gmodels)
 
 CrossTable(diab_test.y, predicted_model,prop.chisq  = FALSE, prop.c = FALSE, prop.r =FALSE,dnn = c('Reality', 'Prediction'))
-
-print(sprintf("La precisión del árbol es: %.4f %%",100*sum(predicted_model == diab_test.y) / length(predicted_model)))
+c50_ave <- 100*sum(predicted_model == diab_test.y) / length(predicted_model)
+print(sprintf("La precisión del árbol es: %.4f %%",c50_ave))
 ```
 
 
-### Reglas de asociación 
+
 
 ### Visualización del modelo
 
-```{r message=FALSE, warning=FALSE}
+para finalizar con este apartado se propone un visualización del árbol resultante de aplicar el algoritmo C5.0 a los datos de _testing_. Gracias a este gráfico se pueden corroborar las diferentes reglas y colocarlas dentro del árbol, tarea que facilita el entendimiento de este tipo de modelos.
+
+```{r message=FALSE, warning=FALSE, fig.width=15, fig.height=7}
 
 # Built the model
-model <- C50::C5.0(diab_train.x, diab_train.y)
+model <- C50::C5.0(diab_test.x, diab_test.y)
 
-```
-
-```{r, fig.width=15, fig.height=7}  
 plot(model)
 ```
 
-## Modelos "No supervizados" basado en distancias.
 
-### Creación modelo K-means k = 2
+
+## Modelo "No supervisado" basado en distancias ( _euclidean_)
+
+En este apartado se evaluará el conjunto de datos originales sobre el algoritmo de agrupamiento _K-medoids_. Este algoritmo basado en distancias permite realizar particiones de los datos en k _clusters_, de manera similar a como lo hace el algoritmo _k-means_, solo que en _k-medoids_ el centro está representado por una observación presente el _cluster_ (medoid) y en el anterior el centro está representado por un punto correspondiente a al valor del promedio de todas las observaciones del _cluster_ sin especificar ninguna.
+
+El hecho de que el algoritmo use los _medoids_ en lugar de los centroides del _k_means_ hace que este algoritmo sea más robusto, viéndose menos afectado por el ruido o por la presencia de _outliers_. El algoritmo más utilizado para aplicar este método de _k-medoids_ es le conocido como [PAM](https://es.wikipedia.org/wiki/K-medoids#Demostraci%C3%B3n_de_PAM) _Partitioning Around Medoids_.
+
+Para este algoritmo hay varias suposiciones que pueden ayuar con su rendimiento a al hora de realizar las particiones, por ejemplo el tema de la elección del método de calcular las distancias, si se sospecha la presencia de _outliers_ se recomienda usar la distancia de _manhattan_ en caso contrario se recomienda la _euclidean_. En este primer ejemplo se evalúa el modelo utilizando la distancia euclidea, ya que en la práctica anterior se realizó un procedimiento para el tratamiento de valores extremos.
+
+
+### Medidas de calidad del modelo
+
+Las medidas de calidad de este modelo coinciden cun las de cualquier otro algoritmo de agrupamiento, son aquellas que persiguen que los grupos estén muy cohesionados entre si y a la vez muy distintos de los demás grupos. Este hecho sugiere que todos los miembros de un mismo _clusters_ sean muy similares ente si y a la vez diferentes a los miembros de otros _clusters_. Estas medidas también pueden utilizarse para elegir el número de _clústers_ cuando este valor no es conocido a priori. En este apartado se comentarán estas medidas y se realizarán algunas pruebas para simular su utilización.
+
+* Similitud intragrupo: Esta medida establece cuan semejantes son los objetos que el proceso ha incluido en el mismo grupo, una medida típica es la varianza de estos atributos.
+
+* Similitud intergrupos: Esta medida determina la distancia entre los centros de los diferentes grupos. Una vez aplicados los procesos de agregación, proporciona mejor resultado el que presente una distancia mayor entre los centros de los _clsuters_.
+
+* Variantes: Esta medida consiste en utilizar la medida de distancia que se ha empleado para construir los grupos y comparar la distancia media dentro de los _clusters_ con respecto a la distancia media entre grupos.
+
+ La Silueta proporciona información de cuan similar es un objeto a los objetos de su _cluster_ y de cuan diferente es a los de _clusters_ vecinos, al final de la iteración, el valor más alto de la silueta es el que propone un número de k óptimo.
+ 
+
+### Utilización de las medidas de calidad para determinar k
+
+En ocasiones el número de agrupaciones no es conocido, es entonces cuando las medidas de calidad entran en juego para apoyar la decisión del valor de k. Existen varias pruebas para determinar este valor basado en las medidas de calidad, entre las más comunes se encuentran la prueba del codo y la prueba de la silueta. 
+
+Por ejemplo, la prueba del codo ( _elbow method_) utiliza la medida de la similitud intragrupo, evaluando la reducción de la varianza de los elementos de un mismo _cluster_ para un rango de k. El objetivo de esta prueba es identificar el valor el número óptimo de _clusters_ basándose en este parámetro. Gracias a las librerías "cluster" y "factoextra" se puede implementar esta prueba de manera muy sencilla, en la gráfica el valor de k se identifica en el punto que simula la forma de un codo humano. 
+
+Remarcar que se establecen algunos parámetros a la hora de realizar la prueba, como por ejemplo el método del cálculo de las distancias o el número máximo de _cluster_ que se desea evaluar.
 
 ```{r message=FALSE, warning=FALSE}
+
 library(cluster)
-
-diab_predictors <- diabetes[1:8]
-diab_target <- diabetes$Outcome
-
-```
-
-
-
-
-```{r message=FALSE, warning=FALSE}
-
-k = 2
-k_menas_cluster <- kmeans(diab_predictors, k)
-
-```
-
-
-### Calidad del modelo 
-
-```{r message=FALSE, warning=FALSE}
-
-cm <- table(k_menas_cluster$cluster, diab_target)
-cm
-k_means_ave <- (cm[1,2] + cm[2,1]) / (cm[1,1] + cm[2,2] +cm[1,2] + cm[2,1]) * 100
-print(sprintf("La precisión del modelo es: %.2f %%",k_means_ave))
-
-```
-
-
-
-
-## Modelos "No supervizados" basados en modelos.
-
-
-### Visión general del modelo y del pquete `Mclust`
-
-```{r message=FALSE, warning=FALSE}
 library(factoextra)
-library(mclust)
 
-model_based_clust <- Mclust(diab_predictors)
-model_based_clust
+fviz_nbclust(x = diab_predictors, FUNcluster = pam, method = "wss", k.max = 10,
+             diss = dist(diab_predictors, method = "euclidean"))
+
 
 ```
 
+Como se puede apreciar en los resultados el test arroja resultados que contrastan con la realidad de los datos, el punto de la gráfica similar a un codo está para k = 3 (aproximadamente) y es conocido que las clases presentes en los datos son dos.
 
-```{r message=FALSE, warning=FALSE}
-fviz_mclust(model_based_clust, what = 'BIC')
-```
-
-### Creación del modelo con k = 2
-```{r message=FALSE, warning=FALSE}
-# Fit the model with customized parameters
-model_based_clust <- Mclust(diab_predictors, G=2)
-model_based_clust
-```
+Se puede realizar entonces la prueba de la silueta y comprobar sus resultados, la silueta proporciona información de cuan similar es un objeto a los objetos de su _cluster_ y de cuan diferente es a los de _clusters_ vecinos, al final de la iteración, el valor más alto de la silueta es el que propone un número de k óptimo.
 
 
 ```{r message=FALSE, warning=FALSE}
 
-# Plot the classification modelo
-fviz_cluster(model_based_clust,diab_predictors)
-fviz_mclust(model_based_clust, what = 'classification')
+library(cluster)
+library(factoextra)
+
+fviz_nbclust(x = diab_predictors, FUNcluster = pam, method = "silhouette", k.max = 10,
+             diss = dist(diab_predictors, method = "euclidean"))
+
 
 ```
+En este caso la prueba sí arroja resultados coherentes con las clases que tenemos en los datos, el valor de la silueta para k = 2, es el que muestra mejores resultados, indicando que es la configuración que mejor relación inter/intra grupos presenta. 
 
-### Calidad del modelo
+### Creación del modelo para k =2
+
+En este punto se puede proceder con la creación del modelo, para ello se utiliza la función pam(), y el valor de k = 2, destacando la utilización de la distancia euclídea. Para facilitar el análisis de los resultados se ofrece una gráfica en la que se muestran los dos _clusters_ obtenidos.
+
 ```{r message=FALSE, warning=FALSE}
 
-# Comparing the predicted results with originals ones.
-cm <- table(model_based_clust$classification,diab_target)
+# Create the model 
+k_medoids <- pam(diab_predictors,k=2, metric = "euclidean")
+
+# Plot the clusters
+fviz_cluster(object = k_medoids, data = diab_predictors, ellipse.type = "norm") +
+  labs(title = "Clustering PAM")
+```
+Como se puede apreciar hay algún solapamiento entre ambos grupos, esto indica que puede haber errores en el proceso de agrupamiento y que algunos valores pueden estar en un grupo equivocado.
+
+### Evaluación de la clasificación
+
+Es ceirto que en los algoritmos no supervisados no se conoce la clase a la que pertenece cada observación, pero como en este caso se han modificado los datos con el objetivo de poder aplicar estos métodos, se puede obtener una medida cuantitativa de la calidad del proceso de agrupamiento. Para ello se crea una matriz de confusión entre los valores de los _clusters_ y los valores de la variable objetivo conocidos. 
+
+```{r message=FALSE, warning=FALSE}
+
+# Get the accuray of the model
+cm <- table(k_medoids$clustering, diab_target)
 cm
 
-# Get the precision of the model
-model_based_ave <-  (cm[1,2] + cm[2,1]) / (cm[1,1] + cm[2,2] +cm[1,2] + cm[2,1]) * 100
-print(sprintf("La precisión del modelo es: %.2f %%",model_based_ave))
+k_medoids_euc_ave <- (cm[1,2] + cm[2,1]) / (cm[1,1] + cm[2,2] +cm[1,2] + cm[2,1]) * 100
+print(sprintf("La precisión del modelo es: %.2f %%",k_medoids_euc_ave))
 
+```
+Como se puede apreciar el rendimiento del modelo presenta valores similares al obtenido con los árboles de decisión.
+
+## Modelo "No supervisado" basado en distancias ( _manhattan_) 
+
+En este apartado se evaluará el mismo conjunto de datos sobre el mismo algoritmo pero basado en un método de distancias diferente, en este caso se usa la distancia de _manhattan_ que en ocasiones puede presentar mejores rendimientos frente a datos con peor calidad. Tal y como se comentó en el apartado anterior, este método es el más indicado para evaluar datos con ruido o con _outliers_, por lo que será interesante comparar el rendimiento del proceso de agrupamiento con este método, ya que estos datos están tratados contra _outiers_. 
+
+Para obtener una comparativa de ambos métodos se repetirá exactamente el mismo proceso que para la distancia euclídea.
+
+### Utilización de las medidas de calidad para determinar k
+
+Primeramente se repite la prueba del codo, en este caso se mantienen todos los parámetros de la prueba anterior solo se cambia el parámetro _method_ que se establece a "_manhattan_"
+
+```{r message=FALSE, warning=FALSE}
+
+library(cluster)
+library(factoextra)
+
+fviz_nbclust(x = diab_predictors, FUNcluster = pam, method = "wss", k.max = 10,
+             diss = dist(diab_predictors, method = "manhattan"))
+
+
+```
+
+Como se puede apreciar en los resultados el test arroja resultados similares a los obtenidos con la prueba aplicada con la distancia euclídea. Se aplica entonces la prueba de la silueta a ver si arroja resultados similares o hay alguna variación en el cálculo de la k óptima.
+
+```{r message=FALSE, warning=FALSE}
+
+library(cluster)
+library(factoextra)
+
+fviz_nbclust(x = diab_predictors, FUNcluster = pam, method = "silhouette", k.max = 10,
+             diss = dist(diab_predictors, method = "manhattan"))
+
+
+```
+De manera similar se obtiene que el número de k óptimo es 2. Con lo cual hasta ahora no se han notado diferencias significativas entre ambos métodos. Se procede entonces a la creación del modelo y a evaluar su calidad.
+
+### Creación del modelo para k =2
+
+Tal y como se implementó el modelo basado en la métrica de la distancia euclídea, se procede a evaluar la función _pam()_ pero con la distancia de _manhatan_ e igualmente con el valor de k = 2.
+
+```{r message=FALSE, warning=FALSE}
+
+# Create the model 
+k_medoids <- pam(diab_predictors,k=2, metric = "manhattan")
+
+# Plot the clusters
+fviz_cluster(object = k_medoids, data = diab_predictors, ellipse.type = "norm") +
+  labs(title = "Clustering PAM")
+```
+
+Ahora si se notan cierta diferencia en los resultados, se puede apreciar un mayor solapamiento entre ambos _clusters_, lo que puede indicar una pérdida en la capacidad clasificadora del modelos, para corroborar esta suposición se calcula el valor de la exactitud de la clasificación.
+
+### Evaluación de la clasificación
+
+Se implementa de nuevo la matriz de confusión y se obtiene la medida cuantitativa de la calidad del proceso de agrupamietno. 
+
+```{r message=FALSE, warning=FALSE}
+
+# Get the accuray of the model
+cm <- table(k_medoids$clustering, diab_target)
+cm
+
+k_medoids_man_ave <- (cm[1,2] + cm[2,1]) / (cm[1,1] + cm[2,2] +cm[1,2] + cm[2,1]) * 100
+print(sprintf("La precisión del modelo es: %.2f %%",k_medoids_man_ave))
+
+```
+Corroborando los resultados obtenidos de la visualización, se aprecia un detrimento de la calidad clasificadora del modelo aproximadamente de un 10%, con lo cual se puede afirmar que para este _dataset_ la elección del método de cálculo basado en la distancia euclídea es el más apropiado.
+
+
+## Modelo supervisado sobre los datos originales.
+
+En este apartado se aplica al conjunto de datos original un algoritmo supervisado. Se selecciona el algoritmo K Nearest Neighbours estudiado en clase para clasificar los registros de los datos en positivos o negativos para diabetes.
+
+Este algoritmo se basa en la métrica de distancia, inicialmente calcula las distancias entre las observaciones y pregunta a los k vecinos más cercanos acerca de cuál debería ser su clase, entonces cada vecino decide y la clase que tenga más votos a favor es la seleccionada para clasificar cada observación. A priori parece un algoritmo muy sencillo, pero es capaz de mostrar muy buena capacidad predictiva en algunos casos. Este modelo tiene la condición que las variables predictoras deben ser numéricas y que la variable objetivo sea categórica, condiciones ambas que cumplen el juego de datos utilizado en la práctica. 
+
+Como es de esperar para las tareas de clasificación se utilizan los datos divididos en los grupos de _training_ y _testing_.
+
+### Medidas de calidad del modelo KNN
+
+En este caso al tratarse de un algoritmo de agrupamiento, las medidas de calidad están muy relacionadas a las conocidas de los demás algoritmos. Básicamente se sustentan sobre las diferencias y similitudes entre los diferentes grupos, en este caso las medidas son:
+
+* Comparar centroides: Esta medida compara cuán distantes están los centros de cada uno de los grupos, siendo los centros (centroides) el punto equivalente a la media de los valores de todos los objetos para todos los atributos. 
+
+* Comparación de enlace sencillo: Esta comparación mide cuán diferentes son dos grupos basándose en la distancia entre los dos elementos más cercanos, o sea los extremos de cada grupo en la dirección del grupo mas cercano con el que se desea comparar. Será mejor el modelo que proporcione distancias de enlace sencillo más grandes.
+
+* Comparación de enlace completo: Similar al enlace sencillo pero cambian los objetos por los más alejados ente cada grupo.Será mejor el modelo que proporcione distancias de enlace complejo más grandes.
+
+
+
+### Eleción de k.
+
+La elección de k es una de las tareas más importantes al usar este algoritmo, es evidente que los resultados pueden cambiar en dependencia de a cuantos vecinos se le pregunte, por este motivo es necesario realizar un pequeño análisis para seleccionar el valor de k óptimo. 
+
+Este valor puede ser determinado por varios métodos, como por ejemplo por el método del codo o el método de valor máximo de _accurancy_, también en ocasiones se suele utilizar una relación matemática para evaluar este algoritmo, se en la cantidad de registros N, y se evalúa como la mitad de la raíz cuadrada de N (k = sqrt(N)/2). En este caso se evaluarán el método del máximo valor del porcentaje de _accuracy_.  
+
+El siguiente procedimiento evalúa la capacidad predictiva del modelo para todos los valores de k entre 1 y 50, y se actualiza el valor de k siempre que se detecte un valor de _accuracy_ mayor que el mejor encontrado anteriormente. También se muestra una gráfica con estos datos para facilitar la comprensión de los resultados. 
+
+```{r message=FALSE,warning=FALSE}
+library(class)
+set.seed(2021)
+
+# Set the inicial values
+accuracies = 1            
+best_k = 1
+best_accuracy = 0
+
+for (i in 1:50){ 
+    # Fit the model
+    knn_model <-  knn(train = diab_train.x, diab_test.x, diab_train.y , k= i )
+    
+    # Get the accuracy value of the ieration and store in a accuracy list
+    accuracy <- 100 * sum(diab_test.y == knn_model)/NROW(diab_test)  
+    accuracies[i] <- accuracy
+    
+    # Compare and update the best values
+    if(accuracy > best_accuracy){
+      best_accuracy <- accuracy
+      best_k <- i
+      # Print the updates
+      k=i  
+      cat(k,'=',accuracy,'\n')     
+    }
+}
+
+print(sprintf("El mejor valor de accuracy es: %.2f %% , con k = %i",best_accuracy, best_k))
+plot(accuracies, type="b", xlab="K- Value",ylab="Accuracy level")
 ```
 
 
 
+### Creación y evaluación del rendimiento del modelo KNN
 
-## Modelo supervizado sobre los datos originales.
+Una vez calculado el valor óptimo de k se procede a evaluar el modelo con este valor y obtener el valor de su rendimiento.
 
-## Modelo supervizado sobre datos reducidos.
+```{r message=FALSE, warning=FALSE}
+library(class)
+set.seed(2021)
+knn_model <- knn(train = diab_train.x, diab_test.x, diab_train.y , k= best_k )
+cm <- table(diab_test.y, knn_model, dnn = c("Actual", "Predicted"))
+
+cm
+knn_ave <- (cm[1,1] + cm[2,2]) / (cm[1,1] + cm[2,2] +cm[1,2] + cm[2,1]) * 100
+print(sprintf("La precisión del modelo es: %.2f %%",knn_ave))
+
+```
+Se puede aprecair que los resultados obtenidos son similares a los obtenidos con los datos de entrenamiento y a los obtenidos hasta el momento por los demás algoritmos.
+
+
+## Modelo supervisado sobre datos modificados (SDV).
+
+Para este apartado se seguirá el mismo procedimiento que para el apartado anterior, solo que se utilizarán los datos modificados en la práctica anterior con el procedimiento "Singular Value Decomposition SDV". El objetivo de utilizar estos datos es comparar la capacidad predictiva del modelo para ambos conjuntos de datos, teniendo en cuenta que los modificados son una representación de los originales y con suficiente información como para ser estadísticamente similares a los originales. 
+
+### Elección de k
+
+De manera similar es necesario encontrar el valor óptimo de k.
+
+
+```{r message=FALSE,warning=FALSE}
+set.seed(2021)
+
+# Set the inicial values
+accuracies = 1            
+best_k = 1
+best_accuracy = 0
+
+for (i in 1:50){ 
+    # Fit the model
+    knn_model <-  knn(train = svd_train.x, svd_test.x, svd_train.y , k= i )
+    
+    # Get the accuracy value of the ieration and store in a accuracy list
+    accuracy <- 100 * sum(svd_test.y == knn_model)/NROW(svd_test)  
+    accuracies[i] <- accuracy
+    
+    # Compare and update the best values
+    if(accuracy > best_accuracy){
+      best_accuracy <- accuracy
+      best_k <- i
+      # Print the updates
+      k=i  
+      cat(k,'=',accuracy,'\n')     
+    }
+}
+
+print(sprintf("El mejor valor de accuracy es: %.2f %% , con k = %i",best_accuracy, best_k))
+plot(accuracies, type="b", xlab="K- Value",ylab="Accuracy level")
+```
+
+### Creación y evaluación del rendimiento del modelo KNN
+
+Una vez calculado el valor óptimo de k se procede a evaluar el modelo con este valor y obtener el valor de su rendimiento.
+
+```{r message=FALSE, warning=FALSE}
+library(class)
+set.seed(2021)
+knn_model <- knn(train = svd_train.x, svd_test.x, svd_train.y , k= best_k )
+cm <- table(svd_test.y, knn_model, dnn = c("Actual", "Predicted"))
+
+cm
+svd_ave <- (cm[1,1] + cm[2,2]) / (cm[1,1] + cm[2,2] +cm[1,2] + cm[2,1]) * 100
+print(sprintf("La precisión del modelo es: %.2f %%",svd_ave))
+
+```
+## Comparativa entre KNN para los datos originales y modificados
+
+Como se puede apreciar en ambos apartados, la capacidad de clasificación del algoritmo para ambos conjuntos de datos es similar. Esto sucede porque realmente ambos conjuntos tienen la misma información útil, y esta información es la que consumen los algoritmos para clasificar cada una de las observaciones. En este caso se había aplicado SVD, pero debido a las características de los datos originales no fue muy beneficiosa la reducción, los datos estaban poco relacionados entre si y además eran algo bajo el número de atributos/variables, con lo cual la única diferencia significativa entre estos conjuntos de datos era su tamaño y su formato.
+
+Es importante destacar que para las evaluaciones se han utilizado todas las variables devueltas por el algoritmo, ya que en su momento la diferencia de información entre este número de atributos y el inmediato inferior era demasiado significativa. Cabe la posibilidad de que al aplicar este mismo método sobre datos con características diferentes se pudiesen obtener mejoras considerables (tiempo de ejecución, almacenamiento, _accuracy_), pero este conjunto de datos no fue el caso, los valores del rendimiento se este modelo oscila entre los valores mostrados por los demás modelos de la práctica.
 
 ## Análisis de los resultados
 
-## Conclusiones
+Luego de haber aplicado todos estos modelos a los dos _datasets_ se obtienen los siguientes resultados, es preciso destacar que ninguno de los modelos presenta un rendimiento significativamente superior al resto ofreciendo todos los algoritmos valores de rendimiento similares. Estos resultados pueden estar condicionados por muchos motivos, entre los que se encuentran, la preparación de los datos, el tratamiento de los valores ausentes y extremos, incluso la posible selección de la cantidad de variables luego de la reducción de la dimensionalidad o la calidad de los datos en sí. Comparando estos resultados con otros análisis del mismo estilo realizados en la plataforma [kaggle](https://www.kaggle.com/) he podido apreciar que mis resultados están dentro de los rangos normales de los ejemplos consultados. En la gráfica que se muestra a continuación se aprecian los valores de _accuracy_ para cada uno de los modelos implementados.
+
+```{r message=FALSE, warning=FALSE}
+library(plotly)
+
+aves <- c(c50_ave, k_medoids_euc_ave ,k_medoids_man_ave, knn_ave, svd_ave)
+algo <- c("C5.0s", "KNN (Euclidean)", "KNN (Manhattan)", "K Nearest N", "K Nearest N (SVD)")
+
+fig <- plot_ly(
+  x = algo,
+  y = aves,
+  name = "Average", 
+  type = "bar"
+)
+
+fig
+```
+
+******
+# Bibliografía
+******
+
+* Material docente de la asignatura Minería de Datos
+
+* Contenido de la plataforma [kaggle](http://kaggle.com)
+
+* Documentación oficial de R
 
 
 
